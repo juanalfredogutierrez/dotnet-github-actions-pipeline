@@ -22,4 +22,8 @@
     <Folder Include="Services\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\SunatIntegration.Infrastructure\SunatIntegration.Infrastructure.csproj" />
+  </ItemGroup>
+
 </Project>
