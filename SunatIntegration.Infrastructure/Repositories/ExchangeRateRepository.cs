@@ -14,7 +14,7 @@ namespace SunatIntegration.Infrastructure.Repositories
             _context = context;
         }
 
-        public async Task<ExchangeRate?> GetByDateAsync(DateTime date)
+        public async Task<ExchangeRate> GetByDateAsync(DateTime date)
         {
             return await _context.ExchangeRates
                 .FirstOrDefaultAsync(x => x.DatePublic == date);
