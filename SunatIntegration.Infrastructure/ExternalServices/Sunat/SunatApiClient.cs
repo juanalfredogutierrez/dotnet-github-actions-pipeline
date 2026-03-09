@@ -1,67 +1,70 @@
 ﻿using SunatIntegration.Application.DTOs.Sunat;
 using SunatIntegration.Application.Interfaces;
 using System.Globalization;
-using System.Text;
+using System.Net.Http.Json;
 using System.Text.Json;
 
-namespace SunatIntegration.Infrastructure.ExternalServices.Sunat
+namespace SunatIntegration.Infrastructure.ExternalServices.Sunat;
+
+public class SunatApiClient : ISunatApiClient
 {
-    public class SunatApiClient : ISunatApiClient
+    private const string Endpoint = "https://e-consulta.sunat.gob.pe/cl-at-ittipcam/tcS01Alias/listarTipoCambio";
+
+    private readonly HttpClient _httpClient;
+
+    public SunatApiClient(HttpClient httpClient)
     {
-        private readonly HttpClient _httpClient;
+        _httpClient = httpClient;
 
-        public SunatApiClient(HttpClient httpClient)
+        if (!_httpClient.DefaultRequestHeaders.UserAgent.Any())
         {
-            _httpClient = httpClient;
-            _httpClient.DefaultRequestHeaders.Add("User-Agent",
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36");
+            _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd(
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64)");
         }
-        public async Task<ExchangeRateDto> GetExchangeRateAsync()
-        { 
-            var payload = new
-            {
-                anio = DateTime.Now.Year,
-                mes = DateTime.Now.Month - 1,
-                token = Guid.NewGuid().ToString("N")
-            };
+    }
 
-            var json = JsonSerializer.Serialize(payload);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
-            var _url = "https://e-consulta.sunat.gob.pe/cl-at-ittipcam/tcS01Alias/listarTipoCambio";
+    public async Task<ExchangeRateDto> GetExchangeRateAsync()
+    {
+        var today = DateTime.Today;
 
-            var response = await _httpClient.PostAsync(_url, content);
-            response.EnsureSuccessStatusCode();
+        var payload = new
+        {
+            anio = today.Year,
+            mes = today.Month - 1,
+            token = Guid.NewGuid().ToString("N")
+        };
 
-            var result = await response.Content.ReadAsStringAsync();
-            var tipoCambios = JsonSerializer.Deserialize<List<SunatTypeChangeDto>>(result);
+        using var response = await _httpClient.PostAsJsonAsync(Endpoint, payload);
 
-            var today = DateTime.Now.Date.ToString("dd/MM/yyyy");
-            var typeChangeToday = tipoCambios.Where(x => x.fecPublica == today);
+        response.EnsureSuccessStatusCode();
 
-            double? priceSales = null;
-            double? pricePurchase = null;
-            string fecPublica = today;
+        var tipoCambios = await response.Content
+            .ReadFromJsonAsync<List<SunatTypeChangeDto>>() ?? [];
 
-            if (typeChangeToday.Any())
-            {
-                foreach (var tipoCambio in typeChangeToday)
-                {
-                    fecPublica = tipoCambio.fecPublica;
-                    if (tipoCambio.codTipo == "V")
-                        priceSales = double.Parse(tipoCambio.valTipo, CultureInfo.InvariantCulture);
-                    if (tipoCambio.codTipo == "C")
-                        pricePurchase = double.Parse(tipoCambio.valTipo, CultureInfo.InvariantCulture);
-                }
-            }
-          
-            return new ExchangeRateDto()
-            {
-                DatePublic =DateTime.Parse(fecPublica),
-                Pricepurchase = pricePurchase,
-                PriceSales = priceSales
+        var todayString = today.ToString("dd/MM/yyyy");
 
-            };
+        var todayRates = tipoCambios
+            .Where(x => x.fecPublica == todayString)
+            .ToDictionary(x => x.codTipo, x => x.valTipo);
 
-        }
+        todayRates.TryGetValue("V", out var sales);
+        todayRates.TryGetValue("C", out var purchase);
+
+        return new ExchangeRateDto
+        {
+            DatePublic = today,
+            PriceSales = ParseDouble(sales),
+            Pricepurchase = ParseDouble(purchase)
+        };
+    }
+
+    private static double? ParseDouble(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return null;
+
+        return double.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out var result)
+            ? result
+            : null;
     }
 }

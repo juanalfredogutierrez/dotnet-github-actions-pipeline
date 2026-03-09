@@ -4,8 +4,8 @@ namespace SunatIntegration.Domain.Interfaces
 {
     public interface IExchangeRateRepository
     {
-        Task<ExchangeRate?> GetByDateAsync(DateTime date);
+        Task<SunatExchangeRate?> GetByDateAsync(DateTime date);
 
-        Task SaveAsync(ExchangeRate exchangeRate);
+        Task SaveAsync(SunatExchangeRate exchangeRate);
     }
 }

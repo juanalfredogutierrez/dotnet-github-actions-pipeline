@@ -5,11 +5,11 @@ using SunatIntegration.Domain.Entities;
 namespace SunatIntegration.Infrastructure.Persistence.Configurations
 {
 
-    public class ExchangeRateConfiguration : IEntityTypeConfiguration<ExchangeRate>
+    public class ExchangeRateConfiguration : IEntityTypeConfiguration<SunatExchangeRate>
     {
-        public void Configure(EntityTypeBuilder<ExchangeRate> builder)
+        public void Configure(EntityTypeBuilder<SunatExchangeRate> builder)
         {
-            builder.ToTable("ExchangeRates");
+            builder.ToTable("SunatExchangeRate");
 
             builder.HasKey(x => x.Id);
 

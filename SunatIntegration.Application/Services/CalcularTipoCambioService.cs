@@ -12,14 +12,14 @@ namespace SunatIntegration.Application.Services
             _repository = repository;
         }
 
-        public async Task<decimal> ObtenerTipoCambioHoy()
+        public async Task<double> ObtenerTipoCambioHoy()
         {
             var tipoCambio = await _repository.GetByDateAsync(DateTime.Today);
 
             if (tipoCambio == null)
                 throw new Exception("No existe tipo de cambio para hoy");
 
-            return tipoCambio.PriceSales;
+            return tipoCambio.PriceSales.Value;
         }
     }
 }

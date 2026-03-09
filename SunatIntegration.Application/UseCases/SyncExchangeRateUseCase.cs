@@ -21,7 +21,7 @@ public class SyncExchangeRateUseCase
     {
         var resultTypeChange = await _sunatClient.GetExchangeRateAsync();
 
-        var exchangeRate = new ExchangeRate
+        var exchangeRate = new SunatExchangeRate
         {
             DatePublic = resultTypeChange.DatePublic.Value,
             PriceSales = resultTypeChange.PriceSales,

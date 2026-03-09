@@ -17,7 +17,7 @@ var builder = FunctionsApplication.CreateBuilder(args);
 builder.ConfigureFunctionsWebApplication();
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(
-        builder.Configuration.GetConnectionString("DefaultConnection")));
+        builder.Configuration.GetConnectionString("AzureConnection")));
 
 
 builder.Services.AddScoped<IExchangeRateRepository, ExchangeRateRepository>();

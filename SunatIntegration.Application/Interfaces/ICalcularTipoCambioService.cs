@@ -2,7 +2,7 @@
 {
     public interface ICalcularTipoCambioService
     {
-        Task<decimal> ObtenerTipoCambioHoy();
+        Task<double> ObtenerTipoCambioHoy();
     }
 }
 

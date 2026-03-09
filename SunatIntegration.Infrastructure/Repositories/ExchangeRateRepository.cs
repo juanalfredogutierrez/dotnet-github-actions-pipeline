@@ -14,15 +14,15 @@ namespace SunatIntegration.Infrastructure.Repositories
             _context = context;
         }
 
-        public async Task<ExchangeRate> GetByDateAsync(DateTime date)
+        public async Task<SunatExchangeRate> GetByDateAsync(DateTime date)
         {
-            return await _context.ExchangeRates
+            return await _context.SunatExchangeRate
                 .FirstOrDefaultAsync(x => x.DatePublic == date);
         }
 
-        public async Task SaveAsync(ExchangeRate exchangeRate)
+        public async Task SaveAsync(SunatExchangeRate exchangeRate)
         {
-            _context.ExchangeRates.Add(exchangeRate);
+            _context.SunatExchangeRate.Add(exchangeRate);
             await _context.SaveChangesAsync();
         }
     }

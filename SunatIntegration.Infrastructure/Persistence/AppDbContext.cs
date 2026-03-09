@@ -10,7 +10,7 @@ namespace SunatIntegration.Infrastructure.Persistence
         {
         }
 
-        public DbSet<ExchangeRate> ExchangeRates { get; set; }
+        public DbSet<SunatExchangeRate> SunatExchangeRate { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
