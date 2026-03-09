@@ -4,7 +4,7 @@ namespace SunatIntegration.Application.Interfaces
 {
     public interface ISunatApiClient
     {
-        Task<ExchangeRateDto> GetExchangeRateAsync(DateTime date);
+        Task<ExchangeRateDto> GetExchangeRateAsync();
     }
 }
 

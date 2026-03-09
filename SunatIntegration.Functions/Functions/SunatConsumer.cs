@@ -20,6 +20,8 @@ public class SunatConsumer
     [Function("SunatConsumer")]
     public async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Function, "get", "post")] HttpRequest req)
     {
+
+
         _logger.LogInformation("C# HTTP trigger function processed a request.");
         await _useCase.ExecuteAsync();
         return new OkObjectResult("Welcome to Azure Functions!");

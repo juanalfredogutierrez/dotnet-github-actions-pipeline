@@ -1,9 +1,10 @@
-﻿namespace SunatIntegration.Application.DTOs.Sunat
+﻿
+namespace SunatIntegration.Application.DTOs.Sunat
 {
     public class ExchangeRateDto
     {
-        public string fecPublica { get; set; }
-        public string valTipo { get; set; }
-        public string codTipo { get; set; }
+        public DateTime? DatePublic { get; set; }
+        public double? PriceSales { get; set; }
+        public double? Pricepurchase { get; set; }
     }
 }

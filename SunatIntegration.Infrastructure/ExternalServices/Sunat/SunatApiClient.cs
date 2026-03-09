@@ -1,5 +1,6 @@
 ﻿using SunatIntegration.Application.DTOs.Sunat;
 using SunatIntegration.Application.Interfaces;
+using System.Globalization;
 using System.Text;
 using System.Text.Json;
 
@@ -11,12 +12,11 @@ namespace SunatIntegration.Infrastructure.ExternalServices.Sunat
 
         public SunatApiClient(HttpClient httpClient)
         {
-
+            _httpClient = httpClient;
             _httpClient.DefaultRequestHeaders.Add("User-Agent",
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
-                "(KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36");
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36");
         }
-        public async Task<ExchangeRateDto> GetExchangeRateAsync(DateTime date)
+        public async Task<ExchangeRateDto> GetExchangeRateAsync()
         { 
             var payload = new
             {
@@ -33,9 +33,35 @@ namespace SunatIntegration.Infrastructure.ExternalServices.Sunat
             response.EnsureSuccessStatusCode();
 
             var result = await response.Content.ReadAsStringAsync();
-            var tipoCambios = JsonSerializer.Deserialize<List<ExchangeRateDto>>(result);
+            var tipoCambios = JsonSerializer.Deserialize<List<SunatTypeChangeDto>>(result);
 
-            throw new NotImplementedException();
+            var today = DateTime.Now.Date.ToString("dd/MM/yyyy");
+            var typeChangeToday = tipoCambios.Where(x => x.fecPublica == today);
+
+            double? priceSales = null;
+            double? pricePurchase = null;
+            string fecPublica = today;
+
+            if (typeChangeToday.Any())
+            {
+                foreach (var tipoCambio in typeChangeToday)
+                {
+                    fecPublica = tipoCambio.fecPublica;
+                    if (tipoCambio.codTipo == "V")
+                        priceSales = double.Parse(tipoCambio.valTipo, CultureInfo.InvariantCulture);
+                    if (tipoCambio.codTipo == "C")
+                        pricePurchase = double.Parse(tipoCambio.valTipo, CultureInfo.InvariantCulture);
+                }
+            }
+          
+            return new ExchangeRateDto()
+            {
+                DatePublic =DateTime.Parse(fecPublica),
+                Pricepurchase = pricePurchase,
+                PriceSales = priceSales
+
+            };
+
         }
     }
 }

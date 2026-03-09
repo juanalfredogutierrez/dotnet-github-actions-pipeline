@@ -19,13 +19,13 @@ public class SyncExchangeRateUseCase
 
     public async Task ExecuteAsync()
     {
-        var rate = await _sunatClient.GetExchangeRateAsync(DateTime.Now);
+        var resultTypeChange = await _sunatClient.GetExchangeRateAsync();
 
         var exchangeRate = new ExchangeRate
         {
-           // DatePublic = rate.fecPublica,
-           //PriceSales = rate.valTipo,
-           // Pricepurchase = rate.valTipo
+            DatePublic = resultTypeChange.DatePublic.Value,
+            PriceSales = resultTypeChange.PriceSales,
+            Pricepurchase = resultTypeChange.Pricepurchase
         };
 
         await _repository.SaveAsync(exchangeRate);
