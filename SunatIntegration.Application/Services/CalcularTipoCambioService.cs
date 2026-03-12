@@ -12,7 +12,7 @@ namespace SunatIntegration.Application.Services
             _repository = repository;
         }
 
-        public async Task<double> ObtenerTipoCambioHoy()
+        public async Task<decimal> ObtenerTipoCambioHoy()
         {
             var tipoCambio = await _repository.GetByDateAsync(DateTime.Today);
 

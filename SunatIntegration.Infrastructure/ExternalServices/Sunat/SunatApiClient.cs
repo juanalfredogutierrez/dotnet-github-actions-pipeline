@@ -57,12 +57,12 @@ public class SunatApiClient : ISunatApiClient
         };
     }
 
-    private static double? ParseDouble(string? value)
+    private static decimal? ParseDouble(string? value)
     {
         if (string.IsNullOrWhiteSpace(value))
             return null;
 
-        return double.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out var result)
+        return decimal.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out var result)
             ? result
             : null;
     }

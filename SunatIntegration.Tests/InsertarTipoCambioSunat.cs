@@ -23,8 +23,8 @@ namespace SunatIntegration.Tests
                 .ReturnsAsync(new ExchangeRateDto
                 {
                     DatePublic = DateTime.Today,
-                    PriceSales = 10.0,
-                    Pricepurchase = 3.70
+                    PriceSales = 10,
+                    Pricepurchase = 3.70m
                 });
 
             var useCase = new SyncExchangeRateUseCase(
@@ -51,8 +51,8 @@ namespace SunatIntegration.Tests
                 .ReturnsAsync(new ExchangeRateDto
                 {
                     DatePublic = yesterday,
-                    PriceSales = 3.70,
-                    Pricepurchase = 3.65
+                    PriceSales = 3.70m,
+                    Pricepurchase = 3.65m
                 });
 
             var useCase = new SyncExchangeRateUseCase(
@@ -65,8 +65,8 @@ namespace SunatIntegration.Tests
             // Assert
             repoMock.Verify(
                 x => x.SaveAsync(It.Is<SunatExchangeRate>(r =>
-                    r.PriceSales == 3.70 &&
-                    r.Pricepurchase == 3.65)),
+                    r.PriceSales == 3.70m &&
+                    r.Pricepurchase == 3.65m)),
                 Times.Once);
         }
 

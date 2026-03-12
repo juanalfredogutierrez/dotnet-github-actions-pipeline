@@ -33,7 +33,7 @@ public class SunatApiClientIntegrationTests
     {
         // Arrange
         var configuration = new ConfigurationBuilder()
-            .AddJsonFile("appsettings.json") 
+            .AddJsonFile("appsettings.test.json") 
             .Build();
 
         var connectionString = configuration.GetConnectionString("AzureConnection");
