@@ -15,6 +15,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SunatIntegration.Domain", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SunatIntegration.Infrastructure", "SunatIntegration.Infrastructure\SunatIntegration.Infrastructure.csproj", "{47B99C3A-2AFF-4C11-BE36-14F9AB937CA0}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SunatIntegration.Tests", "SunatIntegration.Tests\SunatIntegration.Tests.csproj", "{7FF7D8CF-A16B-4433-921C-E0AA44A3B0E2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -37,6 +39,10 @@ Global
 		{47B99C3A-2AFF-4C11-BE36-14F9AB937CA0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{47B99C3A-2AFF-4C11-BE36-14F9AB937CA0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{47B99C3A-2AFF-4C11-BE36-14F9AB937CA0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7FF7D8CF-A16B-4433-921C-E0AA44A3B0E2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7FF7D8CF-A16B-4433-921C-E0AA44A3B0E2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7FF7D8CF-A16B-4433-921C-E0AA44A3B0E2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7FF7D8CF-A16B-4433-921C-E0AA44A3B0E2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -46,6 +52,7 @@ Global
 		{7531BBB6-C7A8-4628-843F-09AD631CFDA4} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 		{35BF64AE-3267-4ABF-994D-3B2753648669} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 		{47B99C3A-2AFF-4C11-BE36-14F9AB937CA0} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{7FF7D8CF-A16B-4433-921C-E0AA44A3B0E2} = {47E51F23-955A-4722-A2FA-36EAFA6651A6}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {32ACED70-592A-4801-BC7D-940B275C8ABD}
