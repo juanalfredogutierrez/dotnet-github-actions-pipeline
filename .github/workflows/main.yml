@@ -2,14 +2,12 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: 
-      - dev
+    branches: [ "development" ]
   pull_request:
-    branches: 
-      - dev
+    branches: [ "development" ]
 
 jobs:
-  build-and-deploy:
+  build-and-test:
     runs-on: ubuntu-latest
 
     steps:
@@ -22,18 +20,30 @@ jobs:
         dotnet-version: '8.0.x'
 
     - name: Restore dependencies
-      run: dotnet restore
+      run: dotnet restore SunatIntegration.sln
 
     - name: Build solution
-      run: dotnet build --no-restore --configuration Release
+      run: dotnet build SunatIntegration.sln --no-restore --configuration Release
 
     - name: Run Unit Tests
-      run: dotnet test InnovaFunding.Functions.UnitTesting/ --no-build --configuration Release --collect:"XPlat Code Coverage"
+      run: dotnet test Src/SunatIntegration.Tests/ --no-build --configuration Release --collect:"XPlat Code Coverage"
 
     - name: Run Integration Tests
-      run: dotnet test InnovaFunding.Functions.IntegrationTest/ --no-build --configuration Release
-      env:
-        ConnectionStrings__AzureConnection: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
+      run: dotnet test Test/SunatIntegration.IntegrationTests/ --no-build --configuration Release
+
+  deploy:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/dev'
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
 
     - name: Azure Login
       uses: azure/login@v2
@@ -41,7 +51,7 @@ jobs:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
 
     - name: Publish project
-      run: dotnet publish InnovaFunding.Functions/InnovaFunding.Functions.csproj -c Release -o ./publish
+      run: dotnet publish Src/SunatIntegration.Functions/SunatIntegration.Functions.csproj -c Release -o ./publish
 
     - name: List publish folder
       run: ls -R ./publish
