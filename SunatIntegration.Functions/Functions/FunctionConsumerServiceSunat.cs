@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 using SunatIntegration.Application.UseCases;
 using System.Net;
 
-namespace SunatIntegration.Functions.Functions;
+namespace SunatIntegration.Functions;
 
 public class FunctionConsumerServiceSunat
 {
@@ -17,7 +17,7 @@ public class FunctionConsumerServiceSunat
         _useCase = useCase;
     }
 
-    [Function(nameof(FunctionConsumerServiceSunat))]
+    [Function("query-type-change-sunat")]
     public async Task<HttpResponseData> Run(
     [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post")] HttpRequestData req,
     FunctionContext context)
