@@ -1,0 +1,84 @@
+name: .NET CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+
+  pull_request:
+    branches:
+      - main
+
+env:
+  DOTNET_VERSION: '8.0.x'
+  AZURE_FUNCTION_PROJECT: 'Src/SunatIntegration.Functions'
+  UNIT_TEST_PROJECT: 'Test/SunatIntegration.Tests'
+  INTEGRATION_TEST_PROJECT: 'Test/SunatIntegration.IntegrationTests'
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Cache NuGet packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.nuget/packages
+        key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+        restore-keys: |
+          ${{ runner.os }}-nuget-
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build solution
+      run: dotnet build --configuration Release --no-restore
+
+    - name: Run Unit Tests
+      run: dotnet test ${{ env.UNIT_TEST_PROJECT }} --configuration Release --no-build
+
+    - name: Run Integration Tests
+      run: dotnet test ${{ env.INTEGRATION_TEST_PROJECT }} --configuration Release --no-build
+
+    - name: Publish Azure Function
+      run: dotnet publish ${{ env.AZURE_FUNCTION_PROJECT }} -c Release -o publish
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: functionapp
+        path: publish
+
+
+  deploy:
+
+    needs: build
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+    - name: Download Artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: functionapp
+        path: publish
+
+    - name: Deploy Azure Function
+      uses: Azure/functions-action@v1
+      with:
+        app-name: ${{ secrets.AZURE_FUNCTIONAPP_NAME }}
+        package: publish
+        publish-profile: ${{ secrets.AZURE_FUNCTIONAPP_PUBLISH_PROFILE }}
