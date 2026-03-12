@@ -45,9 +45,12 @@ jobs:
     - name: Build solution
       run: dotnet build ${{ env.SOLUTION_FILE }} --configuration Release --no-restore
 
-    - name: Run all tests
-      run: dotnet test ${{ env.SOLUTION_FILE }} --configuration Release --no-build --verbosity normal
+    - name: Run Unit Tests
+      run: dotnet test **/SunatIntegration.Tests.csproj --configuration Release --no-build
 
+    - name: Run Integration Tests
+      run: dotnet test **/SunatIntegration.IntegrationTests.csproj --configuration Release --no-build
+      
     - name: Publish Azure Function
       run: dotnet publish ${{ env.FUNCTION_PROJECT }} --configuration Release --output publish
 
