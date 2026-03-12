@@ -9,11 +9,12 @@ on:
   pull_request:
     branches:
       - main
+
 env:
   DOTNET_VERSION: '8.0.x'
-  AZURE_FUNCTION_PROJECT: 'Src/SunatIntegration.Functions/SunatIntegration.Functions.csproj'
-  UNIT_TEST_PROJECT: 'Test/SunatIntegration.Tests/SunatIntegration.Tests.csproj'
-  INTEGRATION_TEST_PROJECT: 'Test/SunatIntegration.IntegrationTests/SunatIntegration.IntegrationTests.csproj'
+  SOLUTION_FILE: 'SunatIntegration.sln'
+  FUNCTION_PROJECT: 'Src/SunatIntegration.Functions/SunatIntegration.Functions.csproj'
+
 jobs:
 
   build:
@@ -39,19 +40,16 @@ jobs:
           ${{ runner.os }}-nuget-
 
     - name: Restore dependencies
-      run: dotnet restore
+      run: dotnet restore ${{ env.SOLUTION_FILE }}
 
     - name: Build solution
-      run: dotnet build --configuration Release --no-restore
+      run: dotnet build ${{ env.SOLUTION_FILE }} --configuration Release --no-restore
 
-    - name: Run Unit Tests
-      run: dotnet test ${{ env.UNIT_TEST_PROJECT }} --configuration Release --no-build
-
-    - name: Run Integration Tests
-      run: dotnet test ${{ env.INTEGRATION_TEST_PROJECT }} --configuration Release --no-build
+    - name: Run all tests
+      run: dotnet test ${{ env.SOLUTION_FILE }} --configuration Release --no-build --verbosity normal
 
     - name: Publish Azure Function
-      run: dotnet publish ${{ env.AZURE_FUNCTION_PROJECT }} -c Release -o publish
+      run: dotnet publish ${{ env.FUNCTION_PROJECT }} --configuration Release --output publish
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
