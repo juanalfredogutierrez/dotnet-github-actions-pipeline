@@ -83,7 +83,7 @@ jobs:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
 
     - name: Deploy Azure Function
-      uses: Azure/functions-action@v1
+      uses: azure/webapps-deploy@v2
       with:
         app-name: ${{ secrets.AZURE_FUNCTIONAPP_NAME }}
         package: publish
