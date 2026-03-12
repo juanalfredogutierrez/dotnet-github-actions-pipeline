@@ -26,10 +26,10 @@ jobs:
       run: dotnet build SunatIntegration.sln --no-restore --configuration Release
 
     - name: Run Unit Tests
-      run: dotnet test Src/SunatIntegration.Tests/ --no-build --configuration Release --collect:"XPlat Code Coverage"
+      run: dotnet test Test/SunatIntegration.Tests/SunatIntegration.Tests.csproj --no-build --configuration Release --collect:"XPlat Code Coverage"
 
     - name: Run Integration Tests
-      run: dotnet test Test/SunatIntegration.IntegrationTests/ --no-build --configuration Release
+      run: dotnet test Test/SunatIntegration.IntegrationTests/SunatIntegration.IntegrationTests.csproj --no-build --configuration Release
 
   deploy:
     needs: build-and-test
