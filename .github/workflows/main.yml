@@ -9,13 +9,11 @@ on:
   pull_request:
     branches:
       - main
-
 env:
   DOTNET_VERSION: '8.0.x'
-  AZURE_FUNCTION_PROJECT: 'Src/SunatIntegration.Functions'
-  UNIT_TEST_PROJECT: 'Test/SunatIntegration.Tests'
-  INTEGRATION_TEST_PROJECT: 'Test/SunatIntegration.IntegrationTests'
-
+  AZURE_FUNCTION_PROJECT: 'Src/SunatIntegration.Functions/SunatIntegration.Functions.csproj'
+  UNIT_TEST_PROJECT: 'Test/SunatIntegration.Tests/SunatIntegration.Tests.csproj'
+  INTEGRATION_TEST_PROJECT: 'Test/SunatIntegration.IntegrationTests/SunatIntegration.IntegrationTests.csproj'
 jobs:
 
   build:
