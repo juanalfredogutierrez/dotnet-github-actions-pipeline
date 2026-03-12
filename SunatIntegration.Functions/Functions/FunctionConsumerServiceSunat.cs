@@ -25,8 +25,6 @@ public class FunctionConsumerServiceSunat
         await _useCase.ExecuteAsync();
         var response = req.CreateResponse(HttpStatusCode.OK);
         await response.WriteStringAsync($"Tipo de cambio insertado correctamente.");
-
-        _logger.LogInformation("HTTP trigger ejecutado correctamente.");
         return response;
     }
 
