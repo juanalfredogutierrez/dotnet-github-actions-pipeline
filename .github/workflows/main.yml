@@ -1,4 +1,4 @@
-name: Enterprise CI/CD Azure Function - Multi-Job
+name: Enterprise CI/CD Azure Function - Multi-Job Fixed
 
 on:
   push:
@@ -7,19 +7,16 @@ on:
     branches: [ "development", "main" ]
 
 jobs:
-  # 1️⃣ Build & Test + Publish
   build-and-test:
     runs-on: ubuntu-latest
-    outputs:
-      publish-folder: ./publish
     steps:
       # Checkout
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
       # Setup .NET
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v3
         with:
           dotnet-version: 8.0.x
 
@@ -31,10 +28,9 @@ jobs:
       - name: Build Unit Test Project
         run: |
           TEST_PROJECT=$(find . -name "SunatIntegration.Tests.csproj" | head -n 1)
-          echo "Building test project: $TEST_PROJECT"
           dotnet build "$TEST_PROJECT" -c Release
 
-      # Run Unit Tests with Coverage
+      # Run Unit Tests
       - name: Run Unit Tests
         run: |
           TEST_PROJECT=$(find . -name "SunatIntegration.Tests.csproj" | head -n 1)
@@ -51,34 +47,31 @@ jobs:
         id: publish-func
         run: |
           FUNCTION_PROJECT=$(find . -name "SunatIntegration.Functions.csproj" | head -n 1)
-          echo "Publishing project: $FUNCTION_PROJECT"
           dotnet publish "$FUNCTION_PROJECT" -c Release -o ./publish --self-contained false --verbosity normal
-          echo "publish-folder=./publish" >> $GITHUB_OUTPUT
 
-      # List published files for debug
+      # List files for debug
       - name: List publish folder
         run: ls -R ./publish
 
-      # Upload publish folder as artifact
+      # Upload publish artifact
       - name: Upload publish artifact
         uses: actions/upload-artifact@v4
         with:
           name: azure-function-publish
           path: ./publish
 
-  # 2️⃣ Deploy
   deploy:
     needs: build-and-test
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/development' || github.ref == 'refs/heads/main'
     steps:
-      # Checkout repo (needed for actions context)
+      # Checkout
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
       # Setup .NET
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v3
         with:
           dotnet-version: 8.0.x
 
@@ -89,22 +82,22 @@ jobs:
           name: azure-function-publish
           path: ./publish
 
-      # Ensure correct folder structure
-      - name: Fix publish folder structure
+      # Flatten folder to ensure Azure sees correct structure
+      - name: Flatten publish folder
         run: |
-          # Sometimes the artifact creates an extra folder, flatten it
+          # Detect extra subfolder created by artifact
           if [ -d ./publish/azure-function-publish ]; then
             mv ./publish/azure-function-publish/* ./publish/
           fi
-          ls -R ./publish
+          ls -R ./publish  # Debug: verify files
 
-      # Azure Login
+      # Azure login
       - name: Azure Login
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      # Deploy to Azure Function
+      # Deploy
       - name: Deploy to Azure Functions
         uses: azure/webapps-deploy@v2
         with:
