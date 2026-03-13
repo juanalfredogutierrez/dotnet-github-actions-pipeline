@@ -1,4 +1,4 @@
-name: .NET CI/CD Azure Function - Tests First
+name: .NET CI/CD Azure Function - Robust
 
 on:
   push:
@@ -25,30 +25,35 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore
 
-    # 4️⃣ Run Unit Tests with Coverage
-    - name: Run Unit Tests
-      id: unit-tests
+    # 4️⃣ Build Unit Test Project
+    - name: Build Unit Test Project
       run: |
         TEST_PROJECT=$(find . -name "SunatIntegration.Tests.csproj" | head -n 1)
-        echo "Using test project: $TEST_PROJECT"
-        dotnet test "$TEST_PROJECT" --no-build --configuration Release --collect:"XPlat Code Coverage" --verbosity normal
+        echo "Building test project: $TEST_PROJECT"
+        dotnet build "$TEST_PROJECT" -c Release
 
-    # 5️⃣ Run Integration Tests
+    # 5️⃣ Run Unit Tests with Coverage
+    - name: Run Unit Tests
+      run: |
+        TEST_PROJECT=$(find . -name "SunatIntegration.Tests.csproj" | head -n 1)
+        echo "Running Unit Tests for: $TEST_PROJECT"
+        dotnet test "$TEST_PROJECT" -c Release --collect:"XPlat Code Coverage" --verbosity normal
+
+    # 6️⃣ Run Integration Tests
     - name: Run Integration Tests
-      id: integration-tests
       run: |
         INTEGRATION_PROJECT=$(find . -name "SunatIntegration.IntegrationTests.csproj" | head -n 1)
-        echo "Using integration test project: $INTEGRATION_PROJECT"
-        dotnet test "$INTEGRATION_PROJECT" --no-build --configuration Release --verbosity normal
+        echo "Running Integration Tests for: $INTEGRATION_PROJECT"
+        dotnet test "$INTEGRATION_PROJECT" -c Release --verbosity normal
 
-    # 6️⃣ Azure Login (solo si los tests pasaron)
+    # 7️⃣ Azure Login (solo si los tests pasaron)
     - name: Azure Login
       if: ${{ success() }}
       uses: azure/login@v1
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-    # 7️⃣ Publish Azure Function (solo si los tests pasaron)
+    # 8️⃣ Publish Azure Function (solo si los tests pasaron)
     - name: Publish Azure Function
       if: ${{ success() }}
       run: |
@@ -56,10 +61,11 @@ jobs:
         echo "Publishing project: $FUNCTION_PROJECT"
         dotnet publish "$FUNCTION_PROJECT" -c Release -o ./publish --verbosity normal
 
-    # 8️⃣ Deploy to Azure Function App (solo si los tests pasaron)
+    # 9️⃣ Deploy to Azure Function App (solo si los tests pasaron)
     - name: Deploy to Azure Functions
       if: ${{ success() }}
       uses: azure/webapps-deploy@v2
       with:
         app-name: ${{ secrets.AZURE_FUNCTIONAPP_NAME }}
         package: ./publish
+        slot-name: production
