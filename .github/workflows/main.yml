@@ -1,4 +1,4 @@
-name: Enterprise CI/CD Pipeline - .NET Azure Function
+name: Enterprise CI/CD Azure Function - Multi-Job
 
 on:
   push:
@@ -7,19 +7,19 @@ on:
     branches: [ "development", "main" ]
 
 jobs:
-  # 1️⃣ Build & Test Stage
+  # 1️⃣ Build & Test + Publish
   build-and-test:
     runs-on: ubuntu-latest
     outputs:
-      publish-folder: ${{ steps.publish-func.outputs.publish-folder }}
+      publish-folder: ./publish
     steps:
-      # Checkout repo
+      # Checkout
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
       # Setup .NET
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v3
         with:
           dotnet-version: 8.0.x
 
@@ -27,7 +27,7 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore SunatIntegration.sln
 
-      # Build Unit Test Project (para Linux coverage)
+      # Build Unit Test Project
       - name: Build Unit Test Project
         run: |
           TEST_PROJECT=$(find . -name "SunatIntegration.Tests.csproj" | head -n 1)
@@ -38,24 +38,26 @@ jobs:
       - name: Run Unit Tests
         run: |
           TEST_PROJECT=$(find . -name "SunatIntegration.Tests.csproj" | head -n 1)
-          echo "Running Unit Tests for: $TEST_PROJECT"
           dotnet test "$TEST_PROJECT" -c Release --collect:"XPlat Code Coverage" --verbosity normal
 
       # Run Integration Tests
       - name: Run Integration Tests
         run: |
           INTEGRATION_PROJECT=$(find . -name "SunatIntegration.IntegrationTests.csproj" | head -n 1)
-          echo "Running Integration Tests for: $INTEGRATION_PROJECT"
           dotnet test "$INTEGRATION_PROJECT" -c Release --verbosity normal
 
-      # Publish Azure Function (artefacto compartido)
+      # Publish Azure Function
       - name: Publish Azure Function
         id: publish-func
         run: |
           FUNCTION_PROJECT=$(find . -name "SunatIntegration.Functions.csproj" | head -n 1)
           echo "Publishing project: $FUNCTION_PROJECT"
-          dotnet publish "$FUNCTION_PROJECT" -c Release -o ./publish --verbosity normal
+          dotnet publish "$FUNCTION_PROJECT" -c Release -o ./publish --self-contained false --verbosity normal
           echo "publish-folder=./publish" >> $GITHUB_OUTPUT
+
+      # List published files for debug
+      - name: List publish folder
+        run: ls -R ./publish
 
       # Upload publish folder as artifact
       - name: Upload publish artifact
@@ -64,28 +66,37 @@ jobs:
           name: azure-function-publish
           path: ./publish
 
-  # 2️⃣ Deploy Stage (Staging / Production)
+  # 2️⃣ Deploy
   deploy:
     needs: build-and-test
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/development' || github.ref == 'refs/heads/main'
     steps:
-      # Checkout repo (necesario para actions context)
+      # Checkout repo (needed for actions context)
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
-      # Setup .NET (opcional si no se necesita rebuild)
+      # Setup .NET
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v3
         with:
           dotnet-version: 8.0.x
 
-      # Download publish artifact
+      # Download artifact
       - name: Download publish artifact
         uses: actions/download-artifact@v4
         with:
           name: azure-function-publish
           path: ./publish
+
+      # Ensure correct folder structure
+      - name: Fix publish folder structure
+        run: |
+          # Sometimes the artifact creates an extra folder, flatten it
+          if [ -d ./publish/azure-function-publish ]; then
+            mv ./publish/azure-function-publish/* ./publish/
+          fi
+          ls -R ./publish
 
       # Azure Login
       - name: Azure Login
@@ -93,9 +104,10 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      # Deploy to Azure Functions
+      # Deploy to Azure Function
       - name: Deploy to Azure Functions
         uses: azure/webapps-deploy@v2
         with:
           app-name: ${{ secrets.AZURE_FUNCTIONAPP_NAME }}
           package: ./publish
+          slot-name: production
