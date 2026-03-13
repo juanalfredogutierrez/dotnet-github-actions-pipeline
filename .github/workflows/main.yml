@@ -1,4 +1,4 @@
-name: .NET CI/CD Azure Function
+name: .NET CI/CD Azure Function - Tests First
 
 on:
   push:
@@ -11,42 +11,55 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # 1️⃣ Obtener el código
+    # 1️⃣ Checkout repo
     - name: Checkout repository
       uses: actions/checkout@v3
 
-    # 2️⃣ Instalar .NET
+    # 2️⃣ Setup .NET
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
         dotnet-version: 8.0.x
 
-    # 3️⃣ Login a Azure con Service Principal
+    # 3️⃣ Restore dependencies
+    - name: Restore dependencies
+      run: dotnet restore
+
+    # 4️⃣ Run Unit Tests with Coverage
+    - name: Run Unit Tests
+      id: unit-tests
+      run: |
+        TEST_PROJECT=$(find . -name "SunatIntegration.Tests.csproj" | head -n 1)
+        echo "Using test project: $TEST_PROJECT"
+        dotnet test "$TEST_PROJECT" --no-build --configuration Release --collect:"XPlat Code Coverage" --verbosity normal
+
+    # 5️⃣ Run Integration Tests
+    - name: Run Integration Tests
+      id: integration-tests
+      run: |
+        INTEGRATION_PROJECT=$(find . -name "SunatIntegration.IntegrationTests.csproj" | head -n 1)
+        echo "Using integration test project: $INTEGRATION_PROJECT"
+        dotnet test "$INTEGRATION_PROJECT" --no-build --configuration Release --verbosity normal
+
+    # 6️⃣ Azure Login (solo si los tests pasaron)
     - name: Azure Login
+      if: ${{ success() }}
       uses: azure/login@v1
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-    # 4️⃣ Restaurar dependencias
-    - name: Restore dependencies
-      run: dotnet restore
-
-    # 5️⃣ Unit Tests con cobertura
-    - name: Run Unit Tests
-      run: dotnet test **/SunatIntegration.Tests.csproj --no-build --configuration Release --collect:"XPlat Code Coverage" --verbosity normal
-
-    # 6️⃣ Integration Tests
-    - name: Run Integration Tests
-      run: dotnet test **/SunatIntegration.IntegrationTests.csproj --no-build --configuration Release --verbosity normal
-
-    # 7️⃣ Publicar Azure Function
+    # 7️⃣ Publish Azure Function (solo si los tests pasaron)
     - name: Publish Azure Function
-      run: dotnet publish **/SunatIntegration.Functions.csproj -c Release -o ./publish --verbosity normal
+      if: ${{ success() }}
+      run: |
+        FUNCTION_PROJECT=$(find . -name "SunatIntegration.Functions.csproj" | head -n 1)
+        echo "Publishing project: $FUNCTION_PROJECT"
+        dotnet publish "$FUNCTION_PROJECT" -c Release -o ./publish --verbosity normal
 
-    # 8️⃣ Deploy a Azure Function App
+    # 8️⃣ Deploy to Azure Function App (solo si los tests pasaron)
     - name: Deploy to Azure Functions
+      if: ${{ success() }}
       uses: azure/webapps-deploy@v2
       with:
-        app-name: ${{ secrets.AZURE_FUNCTIONAPP_NAME }}  # Nombre exacto de tu Function App
-        package: ./publish                                # Carpeta generada con dotnet publish
-        slot-name: production                             # Opcional, default es production
+        app-name: ${{ secrets.AZURE_FUNCTIONAPP_NAME }}
+        package: ./publish
