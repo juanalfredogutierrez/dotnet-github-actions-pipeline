@@ -1,4 +1,4 @@
-name: Enterprise CI/CD Azure Function - Multi-Job Fixed
+name: Enterprise CI/CD Azure Function - Multi-Job Fixed ZIP
 
 on:
   push:
@@ -10,97 +10,93 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
     steps:
-      # Checkout
+      # 1️⃣ Checkout repo
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # Setup .NET
+      # 2️⃣ Setup .NET
       - name: Setup .NET
         uses: actions/setup-dotnet@v3
         with:
           dotnet-version: 8.0.x
 
-      # Restore dependencies
+      # 3️⃣ Restore dependencies
       - name: Restore dependencies
         run: dotnet restore SunatIntegration.sln
 
-      # Build Unit Test Project
+      # 4️⃣ Build Unit Test Project
       - name: Build Unit Test Project
         run: |
           TEST_PROJECT=$(find . -name "SunatIntegration.Tests.csproj" | head -n 1)
           dotnet build "$TEST_PROJECT" -c Release
 
-      # Run Unit Tests
+      # 5️⃣ Run Unit Tests
       - name: Run Unit Tests
         run: |
           TEST_PROJECT=$(find . -name "SunatIntegration.Tests.csproj" | head -n 1)
           dotnet test "$TEST_PROJECT" -c Release --collect:"XPlat Code Coverage" --verbosity normal
 
-      # Run Integration Tests
+      # 6️⃣ Run Integration Tests
       - name: Run Integration Tests
         run: |
           INTEGRATION_PROJECT=$(find . -name "SunatIntegration.IntegrationTests.csproj" | head -n 1)
           dotnet test "$INTEGRATION_PROJECT" -c Release --verbosity normal
 
-      # Publish Azure Function
+      # 7️⃣ Publish Azure Function
       - name: Publish Azure Function
         id: publish-func
         run: |
           FUNCTION_PROJECT=$(find . -name "SunatIntegration.Functions.csproj" | head -n 1)
           dotnet publish "$FUNCTION_PROJECT" -c Release -o ./publish --self-contained false --verbosity normal
+          ls -R ./publish
 
-      # List files for debug
-      - name: List publish folder
-        run: ls -R ./publish
+      # 8️⃣ Zip the publish folder (crucial for deploy)
+      - name: Zip publish folder
+        run: |
+          cd ./publish
+          zip -r ../publish.zip *
+          cd ..
+          ls -lh publish.zip
 
-      # Upload publish artifact
+      # 9️⃣ Upload artifact
       - name: Upload publish artifact
         uses: actions/upload-artifact@v4
         with:
           name: azure-function-publish
-          path: ./publish
+          path: ./publish.zip
 
   deploy:
     needs: build-and-test
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/development' || github.ref == 'refs/heads/main'
     steps:
-      # Checkout
+      # 1️⃣ Checkout
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # Setup .NET
+      # 2️⃣ Setup .NET
       - name: Setup .NET
         uses: actions/setup-dotnet@v3
         with:
           dotnet-version: 8.0.x
 
-      # Download artifact
+      # 3️⃣ Download artifact
       - name: Download publish artifact
         uses: actions/download-artifact@v4
         with:
           name: azure-function-publish
           path: ./publish
 
-      # Flatten folder to ensure Azure sees correct structure
-      - name: Flatten publish folder
-        run: |
-          # Detect extra subfolder created by artifact
-          if [ -d ./publish/azure-function-publish ]; then
-            mv ./publish/azure-function-publish/* ./publish/
-          fi
-          ls -R ./publish  # Debug: verify files
-
-      # Azure login
+      # 4️⃣ Azure Login
       - name: Azure Login
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      # Deploy
+      # 5️⃣ Deploy to Azure Functions using ZIP
       - name: Deploy to Azure Functions
         uses: azure/webapps-deploy@v2
         with:
           app-name: ${{ secrets.AZURE_FUNCTIONAPP_NAME }}
-          package: ./publish
+          package: ./publish/publish.zip
           slot-name: production
