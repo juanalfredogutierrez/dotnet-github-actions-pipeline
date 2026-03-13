@@ -1,29 +1,29 @@
-name: CI/CD Pipeline
+name: .NET CI/CD
 
 on:
   push:
-    branches: [ "development" ]
+    branches: [ development ]
   pull_request:
-    branches: [ "development" ]
+    branches: [ development ]
 
 jobs:
-  build-and-test:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v3
 
     - name: Setup .NET
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v3
       with:
-        dotnet-version: '8.0.x'
+        dotnet-version: 8.0.x
+
+    - name: Setup Azure CLI
+      uses: azure/setup-azure@v3
 
     - name: Restore dependencies
-      run: dotnet restore SunatIntegration.sln
-
-    - name: Build solution
-      run: dotnet build SunatIntegration.sln --no-restore --configuration Release
+      run: dotnet restore
 
     - name: Run Unit Tests
       run: dotnet test **/SunatIntegration.Tests.csproj --no-build --configuration Release --collect:"XPlat Code Coverage" --verbosity normal
@@ -31,33 +31,12 @@ jobs:
     - name: Run Integration Tests
       run: dotnet test **/SunatIntegration.IntegrationTests.csproj --no-build --configuration Release --verbosity normal
 
-  deploy:
-    needs: build-and-test
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/development'
+    - name: Publish Azure Function
+      run: dotnet publish **/SunatIntegration.Functions.csproj -c Release -o ./publish --verbosity normal
 
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
+    - name: Deploy to Azure Function App
+      uses: azure/functions-action@v1
       with:
-        dotnet-version: '8.0.x'
-
-    - name: Azure Login
-      uses: azure/login@v2
-      with:
-        creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-    - name: Publish project
-      run: dotnet publish Src/SunatIntegration.Functions/SunatIntegration.Functions.csproj -c Release -o ./publish
-
-    - name: List publish folder
-      run: ls -R ./publish
-
-    - name: Deploy to Azure Functions
-      uses: azure/webapps-deploy@v2
-      with:
-        app-name: ${{ secrets.AZURE_FUNCTIONAPP_NAME }}
+        app-name: <NOMBRE_DE_TU_FUNCTION_APP>
+        publish-profile: ${{ secrets.AZURE_FUNCTIONAPP_PUBLISH_PROFILE }}
         package: ./publish
