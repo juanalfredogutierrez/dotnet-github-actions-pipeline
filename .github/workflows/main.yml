@@ -1,4 +1,4 @@
-name: .NET CI/CD
+name: .NET CI/CD Azure Function
 
 on:
   push:
@@ -11,32 +11,42 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    # 1️⃣ Obtener el código
     - name: Checkout repository
       uses: actions/checkout@v3
 
+    # 2️⃣ Instalar .NET
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
         dotnet-version: 8.0.x
 
-    - name: Setup Azure CLI
-      uses: azure/setup-azure@v3
+    # 3️⃣ Login a Azure con Service Principal
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
 
+    # 4️⃣ Restaurar dependencias
     - name: Restore dependencies
       run: dotnet restore
 
+    # 5️⃣ Unit Tests con cobertura
     - name: Run Unit Tests
       run: dotnet test **/SunatIntegration.Tests.csproj --no-build --configuration Release --collect:"XPlat Code Coverage" --verbosity normal
 
+    # 6️⃣ Integration Tests
     - name: Run Integration Tests
       run: dotnet test **/SunatIntegration.IntegrationTests.csproj --no-build --configuration Release --verbosity normal
 
+    # 7️⃣ Publicar Azure Function
     - name: Publish Azure Function
       run: dotnet publish **/SunatIntegration.Functions.csproj -c Release -o ./publish --verbosity normal
 
-    - name: Deploy to Azure Function App
-      uses: azure/functions-action@v1
+    # 8️⃣ Deploy a Azure Function App
+    - name: Deploy to Azure Functions
+      uses: azure/webapps-deploy@v2
       with:
-        app-name: <NOMBRE_DE_TU_FUNCTION_APP>
-        publish-profile: ${{ secrets.AZURE_FUNCTIONAPP_PUBLISH_PROFILE }}
-        package: ./publish
+        app-name: ${{ secrets.AZURE_FUNCTIONAPP_NAME }}  # Nombre exacto de tu Function App
+        package: ./publish                                # Carpeta generada con dotnet publish
+        slot-name: production                             # Opcional, default es production
