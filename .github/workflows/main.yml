@@ -1,70 +1,102 @@
-name: .NET CI/CD Azure Function - Robust
+name: Enterprise CI/CD Pipeline - .NET Azure Function
 
 on:
   push:
-    branches: [ development ]
+    branches: [ "development", "main" ]
   pull_request:
-    branches: [ development ]
+    branches: [ "development", "main" ]
 
 jobs:
-  build-and-deploy:
+  # 1️⃣ Build & Test Stage
+  build-and-test:
     runs-on: ubuntu-latest
-
+    outputs:
+      publish-folder: ${{ steps.publish-func.outputs.publish-folder }}
     steps:
-    # 1️⃣ Checkout repo
-    - name: Checkout repository
-      uses: actions/checkout@v3
+      # Checkout repo
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-    # 2️⃣ Setup .NET
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v3
-      with:
-        dotnet-version: 8.0.x
+      # Setup .NET
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: 8.0.x
 
-    # 3️⃣ Restore dependencies
-    - name: Restore dependencies
-      run: dotnet restore
+      # Restore dependencies
+      - name: Restore dependencies
+        run: dotnet restore SunatIntegration.sln
 
-    # 4️⃣ Build Unit Test Project
-    - name: Build Unit Test Project
-      run: |
-        TEST_PROJECT=$(find . -name "SunatIntegration.Tests.csproj" | head -n 1)
-        echo "Building test project: $TEST_PROJECT"
-        dotnet build "$TEST_PROJECT" -c Release
+      # Build Unit Test Project (para Linux coverage)
+      - name: Build Unit Test Project
+        run: |
+          TEST_PROJECT=$(find . -name "SunatIntegration.Tests.csproj" | head -n 1)
+          echo "Building test project: $TEST_PROJECT"
+          dotnet build "$TEST_PROJECT" -c Release
 
-    # 5️⃣ Run Unit Tests with Coverage
-    - name: Run Unit Tests
-      run: |
-        TEST_PROJECT=$(find . -name "SunatIntegration.Tests.csproj" | head -n 1)
-        echo "Running Unit Tests for: $TEST_PROJECT"
-        dotnet test "$TEST_PROJECT" -c Release --collect:"XPlat Code Coverage" --verbosity normal
+      # Run Unit Tests with Coverage
+      - name: Run Unit Tests
+        run: |
+          TEST_PROJECT=$(find . -name "SunatIntegration.Tests.csproj" | head -n 1)
+          echo "Running Unit Tests for: $TEST_PROJECT"
+          dotnet test "$TEST_PROJECT" -c Release --collect:"XPlat Code Coverage" --verbosity normal
 
-    # 6️⃣ Run Integration Tests
-    - name: Run Integration Tests
-      run: |
-        INTEGRATION_PROJECT=$(find . -name "SunatIntegration.IntegrationTests.csproj" | head -n 1)
-        echo "Running Integration Tests for: $INTEGRATION_PROJECT"
-        dotnet test "$INTEGRATION_PROJECT" -c Release --verbosity normal
+      # Run Integration Tests
+      - name: Run Integration Tests
+        run: |
+          INTEGRATION_PROJECT=$(find . -name "SunatIntegration.IntegrationTests.csproj" | head -n 1)
+          echo "Running Integration Tests for: $INTEGRATION_PROJECT"
+          dotnet test "$INTEGRATION_PROJECT" -c Release --verbosity normal
 
-    # 7️⃣ Azure Login (solo si los tests pasaron)
-    - name: Azure Login
-      if: ${{ success() }}
-      uses: azure/login@v1
-      with:
-        creds: ${{ secrets.AZURE_CREDENTIALS }}
+      # Publish Azure Function (artefacto compartido)
+      - name: Publish Azure Function
+        id: publish-func
+        run: |
+          FUNCTION_PROJECT=$(find . -name "SunatIntegration.Functions.csproj" | head -n 1)
+          echo "Publishing project: $FUNCTION_PROJECT"
+          dotnet publish "$FUNCTION_PROJECT" -c Release -o ./publish --verbosity normal
+          echo "publish-folder=./publish" >> $GITHUB_OUTPUT
 
-    # 8️⃣ Publish Azure Function (solo si los tests pasaron)
-    - name: Publish Azure Function
-      if: ${{ success() }}
-      run: |
-        FUNCTION_PROJECT=$(find . -name "SunatIntegration.Functions.csproj" | head -n 1)
-        echo "Publishing project: $FUNCTION_PROJECT"
-        dotnet publish "$FUNCTION_PROJECT" -c Release -o ./publish --verbosity normal
+      # Upload publish folder as artifact
+      - name: Upload publish artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: azure-function-publish
+          path: ./publish
 
-    # 9️⃣ Deploy to Azure Function App (solo si los tests pasaron)
-    - name: Deploy to Azure Functions
-      if: ${{ success() }}
-      uses: azure/webapps-deploy@v2
-      with:
-        app-name: ${{ secrets.AZURE_FUNCTIONAPP_NAME }}
-        package: ./publish
+  # 2️⃣ Deploy Stage (Staging / Production)
+  deploy:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/development' || github.ref == 'refs/heads/main'
+    steps:
+      # Checkout repo (necesario para actions context)
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Setup .NET (opcional si no se necesita rebuild)
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: 8.0.x
+
+      # Download publish artifact
+      - name: Download publish artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: azure-function-publish
+          path: ./publish
+
+      # Azure Login
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      # Deploy to Azure Functions
+      - name: Deploy to Azure Functions
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: ${{ secrets.AZURE_FUNCTIONAPP_NAME }}
+          package: ./publish
+          slot-name: production
