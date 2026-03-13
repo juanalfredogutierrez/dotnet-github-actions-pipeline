@@ -99,4 +99,3 @@ jobs:
         with:
           app-name: ${{ secrets.AZURE_FUNCTIONAPP_NAME }}
           package: ./publish
-          slot-name: production
