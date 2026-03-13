@@ -1,4 +1,4 @@
-name: .NET CI/CD Azure Function - Robust
+name: .NET CI/CD Azure Function - un solo JOB
 
 on:
   push:
