@@ -1,0 +1,70 @@
+name: .NET CI/CD Azure Function - un solo JOB
+
+on:
+  push:
+    branches: [ development ]
+  pull_request:
+    branches: [ development ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    # 1️⃣ Checkout repo
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    # 2️⃣ Setup .NET
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: 8.0.x
+
+    # 3️⃣ Restore dependencies
+    - name: Restore dependencies
+      run: dotnet restore
+
+    # 4️⃣ Build Unit Test Project
+    - name: Build Unit Test Project
+      run: |
+        TEST_PROJECT=$(find . -name "SunatIntegration.Tests.csproj" | head -n 1)
+        echo "Building test project: $TEST_PROJECT"
+        dotnet build "$TEST_PROJECT" -c Release
+
+    # 5️⃣ Run Unit Tests with Coverage
+    - name: Run Unit Tests
+      run: |
+        TEST_PROJECT=$(find . -name "SunatIntegration.Tests.csproj" | head -n 1)
+        echo "Running Unit Tests for: $TEST_PROJECT"
+        dotnet test "$TEST_PROJECT" -c Release --collect:"XPlat Code Coverage" --verbosity normal
+
+    # 6️⃣ Run Integration Tests
+    - name: Run Integration Tests
+      run: |
+        INTEGRATION_PROJECT=$(find . -name "SunatIntegration.IntegrationTests.csproj" | head -n 1)
+        echo "Running Integration Tests for: $INTEGRATION_PROJECT"
+        dotnet test "$INTEGRATION_PROJECT" -c Release --verbosity normal
+
+    # 7️⃣ Azure Login (solo si los tests pasaron)
+    - name: Azure Login
+      if: ${{ success() }}
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    # 8️⃣ Publish Azure Function (solo si los tests pasaron)
+    - name: Publish Azure Function
+      if: ${{ success() }}
+      run: |
+        FUNCTION_PROJECT=$(find . -name "SunatIntegration.Functions.csproj" | head -n 1)
+        echo "Publishing project: $FUNCTION_PROJECT"
+        dotnet publish "$FUNCTION_PROJECT" -c Release -o ./publish --verbosity normal
+
+    # 9️⃣ Deploy to Azure Function App (solo si los tests pasaron)
+    - name: Deploy to Azure Functions
+      if: ${{ success() }}
+      uses: azure/webapps-deploy@v2
+      with:
+        app-name: ${{ secrets.AZURE_FUNCTIONAPP_NAME }}
+        package: ./publish
