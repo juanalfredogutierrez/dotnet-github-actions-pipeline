@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SunatIntegration.Domain.Entities;
 using SunatIntegration.Domain.Interfaces;
+using SunatIntegration.Infrastructure.Common;
 using SunatIntegration.Infrastructure.Persistence;
 
 namespace SunatIntegration.Infrastructure.Repositories
@@ -22,8 +23,14 @@ namespace SunatIntegration.Infrastructure.Repositories
 
         public async Task SaveAsync(SunatExchangeRate exchangeRate)
         {
-            _context.SunatExchangeRate.Add(exchangeRate);
-            await _context.SaveChangesAsync();
+
+            await ResiliencePolicy.WrapDbPolicy()
+          .ExecuteAsync(async () =>
+          {
+              _context.SunatExchangeRate.Add(exchangeRate);
+              await _context.SaveChangesAsync();
+
+          });
         }
     }
 }

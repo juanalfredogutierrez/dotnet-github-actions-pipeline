@@ -1,7 +1,9 @@
 ﻿using SunatIntegration.Application.DTOs.Sunat;
 using SunatIntegration.Application.Interfaces;
+using SunatIntegration.Infrastructure.Common;
 using System.Globalization;
 using System.Net.Http.Json;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace SunatIntegration.Infrastructure.ExternalServices.Sunat;
 
@@ -33,7 +35,8 @@ public class SunatApiClient : ISunatApiClient
             token = Guid.NewGuid().ToString("N")
         };
 
-        using var response = await _httpClient.PostAsJsonAsync(Endpoint, payload);
+        var policy = ExternalServiceResilience.WrapHttpPolicy();
+        using var response = await policy.ExecuteAsync(() => _httpClient.PostAsJsonAsync(Endpoint, payload));
 
         response.EnsureSuccessStatusCode();
 
