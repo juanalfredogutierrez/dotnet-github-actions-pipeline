@@ -1,4 +1,4 @@
-name: Enterprise CI/CD Azure Function - Multi-Job Fixed ZIP
+name: Enterprise CI/CD Azure Function - Multi-Job
 
 on:
   push:
@@ -10,7 +10,7 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
     steps:
-      # 1️⃣ Checkout repo
+      # 1️⃣ Checkout
       - name: Checkout repository
         uses: actions/checkout@v3
 
@@ -30,7 +30,7 @@ jobs:
           TEST_PROJECT=$(find . -name "SunatIntegration.Tests.csproj" | head -n 1)
           dotnet build "$TEST_PROJECT" -c Release
 
-      # 5️⃣ Run Unit Tests
+      # 5️⃣ Run Unit Tests with coverage
       - name: Run Unit Tests
         run: |
           TEST_PROJECT=$(find . -name "SunatIntegration.Tests.csproj" | head -n 1)
@@ -50,7 +50,7 @@ jobs:
           dotnet publish "$FUNCTION_PROJECT" -c Release -o ./publish --self-contained false --verbosity normal
           ls -R ./publish
 
-      # 8️⃣ Zip the publish folder (crucial for deploy)
+      # 8️⃣ Zip the publish folder
       - name: Zip publish folder
         run: |
           cd ./publish
