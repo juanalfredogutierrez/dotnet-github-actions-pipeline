@@ -2,11 +2,13 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SunatIntegration.Application.Interfaces;
+using SunatIntegration.Domain.Abstractions;
 using SunatIntegration.Domain.Interfaces;
 using SunatIntegration.Infrastructure.Common;
 using SunatIntegration.Infrastructure.ExternalServices.Sunat;
 using SunatIntegration.Infrastructure.Persistence;
 using SunatIntegration.Infrastructure.Repositories;
+using SunatIntegration.Infrastructure.Services;
 
 namespace SunatIntegration.Infrastructure
 {
@@ -21,6 +23,9 @@ namespace SunatIntegration.Infrastructure
 
             //repositorios
             services.AddScoped<IExchangeRateRepository, ExchangeRateRepository>();
+
+            // servicios de dominio
+            services.AddSingleton<IDateTimeProvider, SystemDateTimeProvider>();
 
             //servicios externos
             services.AddHttpClient<ISunatApiClient, SunatApiClient>(client =>

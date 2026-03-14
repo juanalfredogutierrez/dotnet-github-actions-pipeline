@@ -24,7 +24,7 @@ public class FunctionConsumerServiceSunat
     {
         await _useCase.ExecuteAsync();
         var response = req.CreateResponse(HttpStatusCode.OK);
-        await response.WriteStringAsync($"Tipo de cambio insertado correctamente.");
+        await response.WriteStringAsync($"[{DateTime.Now}]: Tipo de cambio insertado correctamente.");
         return response;
     }
 

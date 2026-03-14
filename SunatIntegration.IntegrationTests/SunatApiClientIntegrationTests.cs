@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using SunatIntegration.Application.UseCases;
+using SunatIntegration.Domain.Abstractions;
 using SunatIntegration.Infrastructure.ExternalServices.Sunat;
 using SunatIntegration.Infrastructure.Persistence;
 using SunatIntegration.Infrastructure.Repositories;
@@ -11,6 +12,7 @@ public class SunatApiClientIntegrationTests
 {
     private readonly HttpClient _httpClient;
     private readonly string _connectionString;
+
     public SunatApiClientIntegrationTests()
     {
         var configuration = new ConfigurationBuilder()
@@ -50,8 +52,8 @@ public class SunatApiClientIntegrationTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseSqlServer(_connectionString)
             .Options;
-
-        await using var context = new AppDbContext(options);
+        var clock = new FakeDateTimeProvider();
+        await using var context = new AppDbContext(options, clock);
         var repository = new ExchangeRateRepository(context);
 
         var sunatClient = new SunatApiClient(_httpClient);
@@ -71,5 +73,14 @@ public class SunatApiClientIntegrationTests
         rate.PriceSales.Should().BeGreaterThan(0);
         rate.Pricepurchase.Should().BeGreaterThan(0);
     }
+
+    public class FakeDateTimeProvider : IDateTimeProvider
+    {
+        private static readonly TimeZoneInfo PeruTimeZone =
+             TimeZoneInfo.FindSystemTimeZoneById("SA Pacific Standard Time");
+        public DateTime LocalNow => TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, PeruTimeZone);
+
+    }
+
 
 }
