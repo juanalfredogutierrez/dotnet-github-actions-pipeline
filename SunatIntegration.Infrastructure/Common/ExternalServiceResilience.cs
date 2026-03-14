@@ -1,34 +1,38 @@
 ﻿using Polly;
+using Polly.Extensions.Http;
+using System.Net;
 
 namespace SunatIntegration.Infrastructure.Common
 {
     public static class ExternalServiceResilience
     {
-        public static AsyncPolicy<HttpResponseMessage> WrapHttpPolicy()
+        public static IAsyncPolicy<HttpResponseMessage> GetRetryPolicy()
         {
-            // Retry con delay exponencial
-            var retryPolicy = Policy
-                .HandleResult<HttpResponseMessage>(r => !r.IsSuccessStatusCode)
+            return HttpPolicyExtensions
+                .HandleTransientHttpError()
+                .OrResult(r => r.StatusCode == HttpStatusCode.TooManyRequests)
                 .WaitAndRetryAsync(
                     3,
-                    attempt => TimeSpan.FromSeconds(Math.Pow(2, attempt)),
-                    (response, ts, attempt, ctx) =>
+                    retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+                    (result, timeSpan, retryCount, context) =>
                     {
-                        Console.WriteLine($"Retry {attempt} after {ts.TotalSeconds}s due to HTTP {(int)response.Result.StatusCode}");
+                        Console.WriteLine($"Retry {retryCount} after {timeSpan.TotalSeconds}s");
                     });
+        }
 
-            // Circuit breaker
-            var circuitBreaker = Policy
-                .HandleResult<HttpResponseMessage>(r => !r.IsSuccessStatusCode)
+        public static IAsyncPolicy<HttpResponseMessage> GetCircuitBreakerPolicy()
+        {
+            return HttpPolicyExtensions
+                .HandleTransientHttpError()
                 .CircuitBreakerAsync(
-                    2,
-                    TimeSpan.FromSeconds(30),
-                    onBreak: (res, ts) => Console.WriteLine($"Circuit broken for {ts.TotalSeconds}s: HTTP {(int)res.Result.StatusCode}"),
+                    handledEventsAllowedBeforeBreaking: 5,
+                    durationOfBreak: TimeSpan.FromSeconds(60),
+                    onBreak: (result, ts) =>
+                    {
+                        Console.WriteLine($"Circuit opened for {ts.TotalSeconds}s");
+                    },
                     onReset: () => Console.WriteLine("Circuit reset"),
-                    onHalfOpen: () => Console.WriteLine("Circuit half-open")
-                );
-
-            return retryPolicy.WrapAsync(circuitBreaker);
+                    onHalfOpen: () => Console.WriteLine("Circuit half-open"));
         }
     }
 }

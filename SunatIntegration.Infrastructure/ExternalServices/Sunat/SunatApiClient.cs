@@ -1,27 +1,18 @@
 ﻿using SunatIntegration.Application.DTOs.Sunat;
 using SunatIntegration.Application.Interfaces;
-using SunatIntegration.Infrastructure.Common;
 using System.Globalization;
 using System.Net.Http.Json;
-using static System.Runtime.InteropServices.JavaScript.JSType;
-
 namespace SunatIntegration.Infrastructure.ExternalServices.Sunat;
 
 public class SunatApiClient : ISunatApiClient
 {
-    private const string Endpoint = "https://e-consulta.sunat.gob.pe/cl-at-ittipcam/tcS01Alias/listarTipoCambio";
+    private const string Endpoint = "listarTipoCambio";
 
     private readonly HttpClient _httpClient;
 
     public SunatApiClient(HttpClient httpClient)
     {
         _httpClient = httpClient;
-
-        if (!_httpClient.DefaultRequestHeaders.UserAgent.Any())
-        {
-            _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd(
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64)");
-        }
     }
 
     public async Task<ExchangeRateDto> GetExchangeRateAsync()
@@ -35,8 +26,8 @@ public class SunatApiClient : ISunatApiClient
             token = Guid.NewGuid().ToString("N")
         };
 
-        var policy = ExternalServiceResilience.WrapHttpPolicy();
-        using var response = await policy.ExecuteAsync(() => _httpClient.PostAsJsonAsync(Endpoint, payload));
+
+        using var response = await _httpClient.PostAsJsonAsync(Endpoint, payload);
 
         response.EnsureSuccessStatusCode();
 
@@ -51,7 +42,6 @@ public class SunatApiClient : ISunatApiClient
 
         todayRates.TryGetValue("V", out var sales);
         todayRates.TryGetValue("C", out var purchase);
-
         return new ExchangeRateDto
         {
             DatePublic = today,
