@@ -19,7 +19,7 @@ namespace SunatIntegration.Infrastructure
             //base de datos 
             services.AddDbContext<AppDbContext>(options =>
                 options.UseSqlServer(
-                    configuration.GetConnectionString("AzureConnection")));
+                    configuration["AzureConnection"]));
 
             //repositorios
             services.AddScoped<IExchangeRateRepository, ExchangeRateRepository>();

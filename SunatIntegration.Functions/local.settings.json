@@ -3,17 +3,7 @@
   "Values": {
     "AzureWebJobsStorage": "UseDevelopmentStorage=true",
     "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
-    "SunatApi:BaseUrl": "https://e-consulta.sunat.gob.pe/cl-at-ittipcam/tcS01Alias/"
-  },
-  "ConnectionStrings": {
-    "AzureConnection": "https://repository-az-key-vault.vault.azure.net/",
-
-
-    {
-      "KeyVault": {
-        "VaultUrl": "https://repository-az-key-vault.vault.azure.net/"
-      }
-    }
-    //"AzureConnection": "Data Source=tcp:ja-it-database-dev.database.windows.net;Initial Catalog=jadbdev;User ID=ja-admin-db;Password=Azure2030@;Trusted_Connection=False;Encrypt=True;Connection Timeout=30;"
+    "SunatApi:BaseUrl": "https://e-consulta.sunat.gob.pe/cl-at-ittipcam/tcS01Alias/",
+    "KeyVault:VaultUrl": "https://repository-az-key-vault.vault.azure.net/"
   }
 }
