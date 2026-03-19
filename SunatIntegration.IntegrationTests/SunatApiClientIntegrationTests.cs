@@ -1,4 +1,5 @@
-﻿using FluentAssertions;
+﻿using Azure.Identity;
+using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using SunatIntegration.Application.UseCases;
@@ -18,7 +19,18 @@ public class SunatApiClientIntegrationTests
         var configuration = new ConfigurationBuilder()
          .AddJsonFile("appsettings.test.json")
          .Build();
-        _connectionString = configuration.GetConnectionString("AzureConnection");
+
+        var keyVaultUrl = configuration["KeyVault:VaultUrl"];
+
+        if (!string.IsNullOrEmpty(keyVaultUrl))
+        {
+            configuration = new ConfigurationBuilder()
+                .AddConfiguration(configuration)
+                .AddAzureKeyVault(new Uri(keyVaultUrl), new DefaultAzureCredential())
+                .Build();
+        }
+
+        _connectionString = configuration["AzureConnection"];
 
         var baseUrl = configuration["SunatApi:BaseUrl"];
         _httpClient = new HttpClient
