@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      # 👇 Hace que DefaultAzureCredential funcione en integration tests
+      # 🔐 Necesario para DefaultAzureCredential en integration tests
       AZURE_TENANT_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).tenantId }}
       AZURE_CLIENT_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).clientId }}
       AZURE_CLIENT_SECRET: ${{ fromJson(secrets.AZURE_CREDENTIALS).clientSecret }}
@@ -21,22 +21,30 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    # 2️⃣ Setup .NET + cache
+    # 2️⃣ Setup .NET
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 8.0.x
-        cache: true
 
-    # 3️⃣ Restore
+    # 3️⃣ Cache NuGet (manual, sin lock file)
+    - name: Cache NuGet packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.nuget/packages
+        key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/*.props', '**/*.targets') }}
+        restore-keys: |
+          ${{ runner.os }}-nuget-
+
+    # 4️⃣ Restore
     - name: Restore dependencies
-      run: dotnet restore
+      run: dotnet restore --verbosity minimal
 
-    # 4️⃣ Build
+    # 5️⃣ Build
     - name: Build solution
       run: dotnet build -c Release --no-restore
 
-    # 5️⃣ Unit Tests
+    # 6️⃣ Unit Tests
     - name: Run Unit Tests
       run: |
         dotnet test **/*Tests.csproj \
@@ -45,7 +53,7 @@ jobs:
           --no-build \
           --collect:"XPlat Code Coverage"
 
-    # 6️⃣ Integration Tests (ya con credenciales)
+    # 7️⃣ Integration Tests (con credenciales)
     - name: Run Integration Tests
       run: |
         dotnet test **/*IntegrationTests.csproj \
@@ -53,21 +61,22 @@ jobs:
           --no-build \
           --verbosity normal
 
-    # 7️⃣ Azure Login (solo para deploy)
+    # 8️⃣ Azure Login (solo para deploy)
     - name: Azure Login
       if: ${{ success() }}
       uses: azure/login@v1
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-    # 8️⃣ Publish
+    # 9️⃣ Publish Azure Function
     - name: Publish Azure Function
       if: ${{ success() }}
       run: |
         FUNCTION_PROJECT=$(find . -name "SunatIntegration.Functions.csproj" | head -n 1)
+        echo "Publishing project: $FUNCTION_PROJECT"
         dotnet publish "$FUNCTION_PROJECT" -c Release -o ./publish --no-build
 
-    # 9️⃣ Deploy
+    # 🔟 Deploy
     - name: Deploy to Azure Functions
       if: ${{ success() }}
       uses: azure/webapps-deploy@v2
