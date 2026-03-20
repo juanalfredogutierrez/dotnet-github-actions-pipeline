@@ -2,9 +2,9 @@ name: .NET CI/CD Azure Function - un solo JOB
 
 on:
   push:
-    branches: [ development ]
+    branches: [ feature/test-integration ]
   pull_request:
-    branches: [ development ]
+    branches: [ feature/test-integration ]
 
 jobs:
   build-and-deploy:
