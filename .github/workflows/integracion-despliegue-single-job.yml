@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      # 🔐 Necesario para DefaultAzureCredential en integration tests
+      # 🔐 Para DefaultAzureCredential en integration tests
       AZURE_TENANT_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).tenantId }}
       AZURE_CLIENT_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).clientId }}
       AZURE_CLIENT_SECRET: ${{ fromJson(secrets.AZURE_CREDENTIALS).clientSecret }}
@@ -27,7 +27,7 @@ jobs:
       with:
         dotnet-version: 8.0.x
 
-    # 3️⃣ Cache NuGet (manual, sin lock file)
+    # 3️⃣ Cache NuGet
     - name: Cache NuGet packages
       uses: actions/cache@v4
       with:
@@ -44,22 +44,27 @@ jobs:
     - name: Build solution
       run: dotnet build -c Release --no-restore
 
-    # 6️⃣ Unit Tests
+    # 6️⃣ Unit Tests (loop → evita MSB1008)
     - name: Run Unit Tests
       run: |
-        dotnet test **/*Tests.csproj \
-          --filter "Category!=Integration" \
-          -c Release \
-          --no-build \
-          --collect:"XPlat Code Coverage"
+        for proj in $(find . -name "*Tests.csproj" ! -name "*IntegrationTests.csproj"); do
+          echo "Running Unit Tests: $proj"
+          dotnet test "$proj" \
+            -c Release \
+            --no-build \
+            --collect:"XPlat Code Coverage"
+        done
 
     # 7️⃣ Integration Tests (con credenciales)
     - name: Run Integration Tests
       run: |
-        dotnet test **/*IntegrationTests.csproj \
-          -c Release \
-          --no-build \
-          --verbosity normal
+        for proj in $(find . -name "*IntegrationTests.csproj"); do
+          echo "Running Integration Tests: $proj"
+          dotnet test "$proj" \
+            -c Release \
+            --no-build \
+            --verbosity normal
+        done
 
     # 8️⃣ Azure Login (solo para deploy)
     - name: Azure Login
@@ -68,7 +73,7 @@ jobs:
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-    # 9️⃣ Publish Azure Function
+    # 9️⃣ Publish
     - name: Publish Azure Function
       if: ${{ success() }}
       run: |
