@@ -1,4 +1,4 @@
-name: .NET CI/CD Azure Function - un solo JOB
+name: .NET CI/CD Azure Function - optimized
 
 on:
   push:
@@ -7,61 +7,67 @@ on:
     branches: [ development ]
 
 jobs:
-  build-and-deploy:
+  build-test-deploy:
     runs-on: ubuntu-latest
 
-    steps:
-    # 1️⃣ Checkout repo
-    - name: Checkout repository
-      uses: actions/checkout@v3
+    env:
+      # 👇 Hace que DefaultAzureCredential funcione en integration tests
+      AZURE_TENANT_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).tenantId }}
+      AZURE_CLIENT_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).clientId }}
+      AZURE_CLIENT_SECRET: ${{ fromJson(secrets.AZURE_CREDENTIALS).clientSecret }}
 
-    # 2️⃣ Setup .NET
+    steps:
+    # 1️⃣ Checkout
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    # 2️⃣ Setup .NET + cache
     - name: Setup .NET
-      uses: actions/setup-dotnet@v3
+      uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 8.0.x
+        cache: true
 
-    # 3️⃣ Restore dependencies
+    # 3️⃣ Restore
     - name: Restore dependencies
       run: dotnet restore
 
-    # 4️⃣ Build Unit Test Project
-    - name: Build Unit Test Project
-      run: |
-        TEST_PROJECT=$(find . -name "SunatIntegration.Tests.csproj" | head -n 1)
-        echo "Building test project: $TEST_PROJECT"
-        dotnet build "$TEST_PROJECT" -c Release
+    # 4️⃣ Build
+    - name: Build solution
+      run: dotnet build -c Release --no-restore
 
-    # 5️⃣ Run Unit Tests with Coverage
+    # 5️⃣ Unit Tests
     - name: Run Unit Tests
       run: |
-        TEST_PROJECT=$(find . -name "SunatIntegration.Tests.csproj" | head -n 1)
-        echo "Running Unit Tests for: $TEST_PROJECT"
-        dotnet test "$TEST_PROJECT" -c Release --collect:"XPlat Code Coverage" --verbosity normal
+        dotnet test **/*Tests.csproj \
+          --filter "Category!=Integration" \
+          -c Release \
+          --no-build \
+          --collect:"XPlat Code Coverage"
 
-    # 6️⃣ Run Integration Tests
+    # 6️⃣ Integration Tests (ya con credenciales)
     - name: Run Integration Tests
       run: |
-        INTEGRATION_PROJECT=$(find . -name "SunatIntegration.IntegrationTests.csproj" | head -n 1)
-        echo "Running Integration Tests for: $INTEGRATION_PROJECT"
-        dotnet test "$INTEGRATION_PROJECT" -c Release --verbosity normal
+        dotnet test **/*IntegrationTests.csproj \
+          -c Release \
+          --no-build \
+          --verbosity normal
 
-    # 7️⃣ Azure Login (solo si los tests pasaron)
+    # 7️⃣ Azure Login (solo para deploy)
     - name: Azure Login
       if: ${{ success() }}
       uses: azure/login@v1
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-    # 8️⃣ Publish Azure Function (solo si los tests pasaron)
+    # 8️⃣ Publish
     - name: Publish Azure Function
       if: ${{ success() }}
       run: |
         FUNCTION_PROJECT=$(find . -name "SunatIntegration.Functions.csproj" | head -n 1)
-        echo "Publishing project: $FUNCTION_PROJECT"
-        dotnet publish "$FUNCTION_PROJECT" -c Release -o ./publish --verbosity normal
+        dotnet publish "$FUNCTION_PROJECT" -c Release -o ./publish --no-build
 
-    # 9️⃣ Deploy to Azure Function App (solo si los tests pasaron)
+    # 9️⃣ Deploy
     - name: Deploy to Azure Functions
       if: ${{ success() }}
       uses: azure/webapps-deploy@v2
