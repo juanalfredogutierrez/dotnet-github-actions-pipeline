@@ -10,14 +10,14 @@ namespace SunatIntegration.Infrastructure
         {
             var configuration = new ConfigurationBuilder()
                 .SetBasePath(AppContext.BaseDirectory)
-                .AddJsonFile("appsettings.json", optional: true)
+                .AddJsonFile("local.settings.json", optional: true)
                 .Build();
 
             var optionsBuilder = new DbContextOptionsBuilder<AppDbContext>();
 
             var connectionString =
                 configuration.GetConnectionString("AzureConnection")
-                ?? "Server=localhost;Database=SunatDev;Trusted_Connection=True;TrustServerCertificate=True;";
+                ?? "Server=msi\\sqlexpress;Database=SunatTestDb;Trusted_Connection=True;TrustServerCertificate=True;";
 
             optionsBuilder.UseSqlServer(connectionString);
 

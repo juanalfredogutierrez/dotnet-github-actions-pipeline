@@ -4,7 +4,6 @@ using Microsoft.Extensions.Configuration;
 using SunatIntegration.Application.UseCases;
 using SunatIntegration.Domain.Abstractions;
 using SunatIntegration.Infrastructure.ExternalServices.Sunat;
-using SunatIntegration.Infrastructure.Persistence;
 using SunatIntegration.Infrastructure.Repositories;
 namespace SunatIntegration.IntegrationTests;
 
@@ -18,7 +17,7 @@ public class SunatApiClientIntegrationTests
         var configuration = new ConfigurationBuilder()
          .AddJsonFile("appsettings.test.json")
          .Build();
-        _connectionString = configuration.GetConnectionString("testDB");
+        _connectionString = configuration.GetConnectionString("TestDB");
 
         var baseUrl = configuration["SunatApi:BaseUrl"];
         _httpClient = new HttpClient
@@ -54,6 +53,10 @@ public class SunatApiClientIntegrationTests
             .Options;
         var clock = new FakeDateTimeProvider();
         await using var context = new AppDbContext(options, clock);
+
+        //await context.Database.EnsureDeletedAsync();
+        await context.Database.MigrateAsync();
+
         var repository = new ExchangeRateRepository(context);
 
         var sunatClient = new SunatApiClient(_httpClient);
