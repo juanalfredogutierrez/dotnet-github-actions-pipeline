@@ -18,7 +18,7 @@ public class SunatApiClientIntegrationTests
         var configuration = new ConfigurationBuilder()
          .AddJsonFile("appsettings.test.json")
          .Build();
-        _connectionString = configuration.GetConnectionString("AzureConnection");
+        _connectionString = configuration.GetConnectionString("testDB");
 
         var baseUrl = configuration["SunatApi:BaseUrl"];
         _httpClient = new HttpClient
